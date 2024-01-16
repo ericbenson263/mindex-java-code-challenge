@@ -7,7 +7,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Objects;
 import java.util.UUID;
+
+import static com.mindex.challenge.data.ErrorMessages.NOT_NULL;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
@@ -19,6 +23,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public Employee create(Employee employee) {
+        Objects.requireNonNull(employee, NOT_NULL.getValue());
+
         LOG.debug("Creating employee [{}]", employee);
 
         employee.setEmployeeId(UUID.randomUUID().toString());
@@ -28,22 +34,47 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public Employee read(String id) {
-        LOG.debug("Creating employee with id [{}]", id);
+    public Employee read(String employeeId) {
+        Objects.requireNonNull(employeeId, NOT_NULL.getValue());
 
-        Employee employee = employeeRepository.findByEmployeeId(id);
+        LOG.debug("Creating employee with id [{}]", employeeId);
 
-        if (employee == null) {
-            throw new RuntimeException("Invalid employeeId: " + id);
-        }
+        Employee employee = employeeRepository.findByEmployeeId(employeeId);
+        Objects.requireNonNull(employee, NOT_NULL.getValue());
 
         return employee;
     }
 
     @Override
     public Employee update(Employee employee) {
+        Objects.requireNonNull(employee, NOT_NULL.getValue());
+
         LOG.debug("Updating employee [{}]", employee);
 
         return employeeRepository.save(employee);
+    }
+
+    /*
+     * Helper method that checks if the database contains this Employee. Swallows the error, so useful for checks.
+     */
+    @Override
+    public boolean contains(String employeeId) {
+        try{
+            return read(employeeId) != null;
+        }
+        catch (Exception e) {
+            //The employee isn't present in the database..
+            return false;
+        }
+    }
+
+    /*
+     * Helper method that checks if the database contains this Employee (based on the employeeId) before proceeding.
+     */
+    @Override
+    public void containsOrThrowError(String employeeId){
+        //Check to see if the employee is in the database
+        if(!contains(employeeId))
+            throw new RuntimeException("No employee found in the database with employeeId" + employeeId);
     }
 }
